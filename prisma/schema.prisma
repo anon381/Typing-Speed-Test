@@ -1,4 +1,3 @@
-// Prisma schema for typing-speed-test (SQLite). Defines User & Score persistence layer.
 
 generator client {
   provider = "prisma-client-js"
