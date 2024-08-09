@@ -1,7 +1,4 @@
-/**
- * GET /api/auth/me
- * Returns the authenticated user's public info (id, username, createdAt) if a valid JWT cookie is present.
- */
+
 import { NextRequest, NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
 import { prisma } from '@/lib/prisma';
