@@ -1,10 +1,21 @@
+/**
+ * GET /api/auth/me
+ * -----------------
+ * Returns the currently authenticated user based on the 'token' cookie.
+ *
+ * - Verifies JWT from cookie using server secret.
+ * - Fetches user from Prisma if token is valid.
+ * - Returns `{ ok: true, user: userData | null }` or error if misconfigured.
+ *
+ * Usage:
+ * Frontend can call this endpoint to check if a user is logged in.
+ */
 
 import { NextRequest, NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
 import { prisma } from '@/lib/prisma';
 
 interface JwtPayloadSub { sub?: string }
-//
 export async function GET(req: NextRequest) {
   try {
     const secret = process.env.AUTH_JWT_SECRET;
