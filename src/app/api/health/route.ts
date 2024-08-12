@@ -1,7 +1,4 @@
-/**
- * GET /api/health
- * Pings the database and returns service / counts metadata for basic liveness monitoring.
- */
+
 import { NextResponse } from 'next/server';
 import { pingDb, prisma } from '@/lib/prisma';
 // Health check
