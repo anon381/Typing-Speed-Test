@@ -1,3 +1,19 @@
+/**
+ * POST /api/auth/register
+ * ------------------------
+ * Handles user registration.
+ *
+ * Steps:
+ * 1. Validates request body and username/password rules.
+ * 2. Normalizes username to lowercase and trims whitespace.
+ * 3. Checks if username is already taken in the database.
+ * 4. Hashes password with bcrypt and creates the user in Prisma.
+ * 5. Issues a JWT token (2h expiry) and sets it as an HttpOnly cookie.
+ * 6. Returns `{ ok: true }` on success, or error details if validation fails.
+ *
+ * Usage:
+ * Call this endpoint to register a new user and automatically log them in.
+ */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
@@ -22,7 +38,6 @@ export async function POST(req: NextRequest) {
   const passwordHash = await bcrypt.hash(password, 10);
   await prisma.user.create({ data: { username: norm, passwordHash } });
 
-    // Auto-login after successful registration
     const token = jwt.sign({ sub: norm }, secret, { expiresIn: '2h' });
     const res = NextResponse.json({ ok: true });
     res.cookies.set({ name: 'token', value: token, httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production', path: '/', maxAge: 60 * 60 * 2 });
