@@ -1,12 +1,4 @@
-/**
- * GET /api/scores  - List top scores (max 50) sorted by WPM.
- * POST /api/scores - Add a new score for the authenticated user (rate-limited to ~5s).
- */
-/**
- * /api/scores
- * GET: Returns top 50 scores (sorted by WPM).
- * POST: Auth required via JWT cookie; validates payload and rate-limits quick repeats.
- */
+
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import jwt from 'jsonwebtoken';
