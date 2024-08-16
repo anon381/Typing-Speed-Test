@@ -1,4 +1,3 @@
-// AuthPage: registration & login UI with auto-redirect if already authenticated.
 "use client";
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
