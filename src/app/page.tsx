@@ -72,7 +72,6 @@ export default function Home() {
     try { await fetch('/api/auth/logout', { method:'POST' }); } catch {}
     setUsername('');
     setTokenPresent(false);
-    // Redirect user to auth page with next back to home
     router.replace('/auth?next=/');
   }
 
