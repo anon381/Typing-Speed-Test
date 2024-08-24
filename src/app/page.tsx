@@ -6,10 +6,8 @@ import { randomPassage } from '@/lib/passages';
 
 export default function Home() {
   const router = useRouter();
-  // Scores & submission
   const [scores, setScores] = useState<{ name: string; wpm: number; accuracy?: number; passageId?: string }[]>([]);
   const [submitting, setSubmitting] = useState(false);
-  // Removed legacy playerName in favor of auth username
 
   // Typing test state
   const [passage, setPassage] = useState(() => randomPassage());
