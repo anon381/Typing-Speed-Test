@@ -1,4 +1,3 @@
-// passages.ts: Static set of typing passages + helper picker.
 export interface Passage { id: string; text: string; }
 
 export const passages: Passage[] = [
