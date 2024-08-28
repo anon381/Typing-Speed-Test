@@ -1,4 +1,3 @@
-// middleware: Redirect authenticated users away from /auth, pass everything else through.
 import { NextResponse, NextRequest } from 'next/server';
 
 export function middleware(req: NextRequest) {
