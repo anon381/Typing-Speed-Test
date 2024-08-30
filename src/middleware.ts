@@ -1,7 +1,6 @@
 // middleware: Redirect authenticated users away from /auth, pass everything else through.
 import { NextResponse, NextRequest } from 'next/server';
 
-// Simplified: only push authenticated users away from /auth; no gating elsewhere.
 export function middleware(req: NextRequest) {
   const { pathname, searchParams } = req.nextUrl;
   const token = req.cookies.get('token')?.value;
