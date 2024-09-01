@@ -1,3 +1,4 @@
+<!-- Internal maintenance checklist for project evolution -->
 - [x] Clarify Project Requirements
   - Project type: Next.js app (TypeScript, Tailwind CSS, ESLint, App Router, src directory, npm)
 - [x] Scaffold the Project
