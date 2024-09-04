@@ -1,3 +1,4 @@
+// ESLint flat config bridging legacy extends for Next.js + TypeScript.
 import { dirname } from "path";
 import { fileURLToPath } from "url";
 import { FlatCompat } from "@eslint/eslintrc";
