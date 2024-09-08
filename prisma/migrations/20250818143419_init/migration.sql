@@ -1,1 +1,2 @@
--- This is an empty migration.
+-- Migration 20250818143419_init
+-- Note: Empty migration placeholder (no schema changes). Retained for chronological history.
