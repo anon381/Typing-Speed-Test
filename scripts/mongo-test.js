@@ -1,4 +1,5 @@
 // Quick connectivity test. Run with: node scripts/mongo-test.js
+// Deprecated: legacy Mongo connectivity test (kept only for reference, not used by Prisma setup).
 const { MongoClient } = require('mongodb');
 
 (async () => {
