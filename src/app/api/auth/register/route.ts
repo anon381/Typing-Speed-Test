@@ -1,3 +1,7 @@
+/**
+ * POST /api/auth/register
+ * Creates a new user (lowercased username, hashed password) and auto-logs them in by issuing a JWT cookie.
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
