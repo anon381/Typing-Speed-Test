@@ -1,3 +1,4 @@
+// Home: Typing test UI, score submission, scoreboard, and session display.
 'use client';
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
