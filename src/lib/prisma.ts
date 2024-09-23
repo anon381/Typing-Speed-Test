@@ -1,3 +1,4 @@
+/** Prisma client singleton + tiny ping helper. */
 import { PrismaClient } from '@prisma/client';
 
 // Prevent multiple instances during hot reload in dev
