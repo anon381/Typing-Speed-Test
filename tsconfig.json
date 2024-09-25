@@ -1,3 +1,4 @@
+// TypeScript configuration for Next.js project (strict + path alias @/*)
 {
   "compilerOptions": {
     "target": "ES2017",
