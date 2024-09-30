@@ -1,7 +1,4 @@
-/**
- * POST /api/auth/login
- * Authenticates a user (username/password), verifies hash with bcrypt, and sets a JWT httpOnly cookie.
- */
+
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
