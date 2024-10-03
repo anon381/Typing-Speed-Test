@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
+import { prisma } from '@/lib/prisma';
 
 interface JwtPayloadSub { sub?: string }
 
@@ -11,9 +12,11 @@ export async function GET(req: NextRequest) {
     if (!token) return NextResponse.json({ ok: true, user: null });
     try {
       const payload = jwt.verify(token, secret) as JwtPayloadSub | string;
-      const username = typeof payload === 'string' ? undefined : payload.sub;
-      if (!username) return NextResponse.json({ ok: true, user: null });
-      return NextResponse.json({ ok: true, user: { username } });
+  const username = typeof payload === 'string' ? undefined : payload.sub;
+  if (!username) return NextResponse.json({ ok: true, user: null });
+  const user = await prisma.user.findUnique({ where: { username }, select: { id: true, username: true, createdAt: true } });
+  if (!user) return NextResponse.json({ ok: true, user: null });
+  return NextResponse.json({ ok: true, user });
     } catch {
       return NextResponse.json({ ok: true, user: null });
     }
