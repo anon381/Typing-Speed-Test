@@ -3,7 +3,7 @@
 - [x] Scaffold the Project
   - Next.js app created successfully in current directory.
 - [x] Customize the Project
-  - Added MongoDB driver, connection helper, scores API route, UI form & list, env example, README updates.
+  - Added Prisma + SQLite data layer replacing prior MongoDB approach, scores API route, UI form & list, env example, README updates.
 - [x] Install Required Extensions
   - No additional extensions required beyond defaults.
 - [x] Compile the Project
