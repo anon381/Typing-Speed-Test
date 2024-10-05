@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { withDb } from '@/lib/mongodb';
+import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 // NOTE: In production you might add rate limiting / captcha to this route.
@@ -17,12 +17,10 @@ export async function POST(req: NextRequest) {
     const secret = process.env.AUTH_JWT_SECRET;
     if (!secret) return NextResponse.json({ ok: false, error: 'Server misconfigured' }, { status: 500 });
 
-  await withDb(async (db) => {
-      const existing = await db.collection<UserDoc>('users').findOne({ username: norm });
-      if (existing) throw new Error('Username already taken');
-      const passwordHash = await bcrypt.hash(password, 10);
-      await db.collection<UserDoc>('users').insertOne({ username: norm, passwordHash, createdAt: new Date() });
-    });
+  const existing = await prisma.user.findUnique({ where: { username: norm } });
+  if (existing) throw new Error('Username already taken');
+  const passwordHash = await bcrypt.hash(password, 10);
+  await prisma.user.create({ data: { username: norm, passwordHash } });
 
     // Auto-login after successful registration
     const token = jwt.sign({ sub: norm }, secret, { expiresIn: '2h' });
