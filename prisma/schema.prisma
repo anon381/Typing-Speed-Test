@@ -1,4 +1,4 @@
-// Prisma schema for typing-speed-test (SQLite)
+// Prisma schema-for typing-speed-test (SQLite)
 
 generator client {
   provider = "prisma-client-js"
