@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { withDb } from '@/lib/mongodb';
+import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
     const secret = process.env.AUTH_JWT_SECRET;
     if (!secret) return NextResponse.json({ ok: false, error: 'Missing AUTH_JWT_SECRET' }, { status: 500 });
 
-    const user = await withDb(async (db) => db.collection<UserDoc>('users').findOne({ username: norm }));
+  const user = await prisma.user.findUnique({ where: { username: norm } });
     if (!user) return NextResponse.json({ ok: false, error: 'Invalid credentials' }, { status: 401 });
     const match = await bcrypt.compare(password, user.passwordHash);
     if (!match) return NextResponse.json({ ok: false, error: 'Invalid credentials' }, { status: 401 });
