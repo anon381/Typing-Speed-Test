@@ -18,6 +18,7 @@ export default function AuthPage() {
 
   async function submit(e: React.FormEvent){
     e.preventDefault();
+    if(loading) return;
     setError(null); setLoading(true);
     const endpoint = mode==='register'? '/api/auth/register':'/api/auth/login';
     try {
@@ -25,7 +26,17 @@ export default function AuthPage() {
       let data: any = { ok:false, error:'Unexpected response' };
       try { data = await res.json(); } catch { /* ignore parse error */ }
       if(!data.ok){ setError(data.error||'Failed'); setLoading(false); return; }
-      router.replace(nextPath);
+      // Allow cookie to flush
+      setLoading(false);
+      await new Promise(r=>setTimeout(r, 40));
+      // Confirm session
+      let confirmed = false;
+      try { const me = await fetch('/api/auth/me', { cache:'no-store' }).then(r=>r.json()); confirmed = !!(me && me.ok && me.user); } catch {}
+      try {
+        router.replace(nextPath);
+        // Hard reload fallback if still stuck on /auth
+        setTimeout(()=> { if(window.location.pathname === '/auth'){ window.location.href = nextPath; } }, confirmed ? 250 : 400);
+      } catch { window.location.href = nextPath; }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Network error');
       setLoading(false);
