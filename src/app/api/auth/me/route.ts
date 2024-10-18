@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken';
 import { prisma } from '@/lib/prisma';
 
 interface JwtPayloadSub { sub?: string }
-
+//
 export async function GET(req: NextRequest) {
   try {
     const secret = process.env.AUTH_JWT_SECRET;
