@@ -1,8 +1,10 @@
 'use client';
 import { useEffect, useState, useCallback, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { randomPassage } from '@/lib/passages';
 
 export default function Home() {
+  const router = useRouter();
   // Scores & submission
   const [scores, setScores] = useState<{ name: string; wpm: number; accuracy?: number; passageId?: string }[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -66,9 +68,11 @@ export default function Home() {
   }, []);
 
   async function logout(){
-    await fetch('/api/auth/logout', { method:'POST' });
+    try { await fetch('/api/auth/logout', { method:'POST' }); } catch {}
     setUsername('');
     setTokenPresent(false);
+    // Redirect user to auth page with next back to home
+    router.replace('/auth?next=/');
   }
 
   const submitScore = async (e: React.FormEvent) => {
