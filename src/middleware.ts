@@ -1,30 +1,20 @@
 import { NextResponse, NextRequest } from 'next/server';
-import jwt from 'jsonwebtoken';
 
+// Simplified: only push authenticated users away from /auth; no gating elsewhere.
 export function middleware(req: NextRequest) {
-  const { pathname } = req.nextUrl;
-  if (
-    pathname.startsWith('/_next') ||
-    pathname.startsWith('/api/auth') ||
-    pathname.startsWith('/favicon') ||
-    pathname === '/auth'
-  ) {
+  const { pathname, searchParams } = req.nextUrl;
+  const token = req.cookies.get('token')?.value;
+  if (pathname.startsWith('/_next') || pathname.startsWith('/favicon') || pathname.startsWith('/api/')) {
     return NextResponse.next();
   }
-  const token = req.cookies.get('token')?.value;
-  if (!token) {
-    const url = req.nextUrl.clone();
-    url.pathname = '/auth';
-    url.searchParams.set('next', pathname);
-    return NextResponse.redirect(url);
-  }
-  const secret = process.env.AUTH_JWT_SECRET;
-  if (!secret) return NextResponse.next();
-  try { jwt.verify(token, secret); } catch {
-    const url = req.nextUrl.clone();
-    url.pathname = '/auth';
-    url.searchParams.set('next', pathname);
-    return NextResponse.redirect(url);
+  if (pathname === '/auth' && token) {
+    const target = searchParams.get('next') || '/';
+    if (target !== '/auth') {
+      const url = req.nextUrl.clone();
+      url.pathname = target;
+      url.search = '';
+      return NextResponse.redirect(url);
+    }
   }
   return NextResponse.next();
 }
