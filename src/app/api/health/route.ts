@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { pingDb, prisma } from '@/lib/prisma';
-
+// Health check
 export async function GET() {
   const dbStatus = await pingDb();
   let meta: any = undefined;
