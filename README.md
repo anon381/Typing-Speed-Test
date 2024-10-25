@@ -3,7 +3,7 @@
 This project is a Next.js app scaffolded with TypeScript, Tailwind CSS, ESLint, App Router, and a src directory. It was created using npm.
 
 ## Data Layer
-Uses Prisma + SQLite. Scores & Users persisted in `dev.db` file (see `prisma/schema.prisma`).
+Uses Prisma + SQLite Scores & Users persisted in `dev.db` file (see `prisma/schema.prisma`).
 
 ### Initialize Database
 ```
