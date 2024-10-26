@@ -16,30 +16,51 @@ let clientPromise: Promise<MongoClient> | undefined;
 const options: MongoClientOptions = {
   serverSelectionTimeoutMS: 10_000, // fail fast instead of hanging forever
   connectTimeoutMS: 10_000,
+  serverApi: { version: '1', strict: true, deprecationErrors: true },
 };
 
 function initClient() {
   if (!uri && !fallbackUri) throw new Error('Missing MONGODB_URI (and no STANDARD_MONGODB_URI)');
   if (!clientPromise) {
-    clientPromise = (async () => {
+    clientPromise = (async (): Promise<MongoClient> => {
       const start = Date.now();
       const primary = uri || fallbackUri!;
       try {
         if (process.env.NODE_ENV !== 'production') console.log('[mongo] connecting primary URI...');
-        const c = await new MongoClient(primary, options).connect();
-        if (process.env.NODE_ENV !== 'production') console.log(`[mongo] connected in ${Date.now() - start}ms`);
-        return c;
+        let attempt = 0; let lastErr: unknown;
+        while (attempt < 2) { // one retry on same URI
+          try {
+            const c = await new MongoClient(primary, options).connect();
+            return c;
+          } catch (err) {
+            lastErr = err; attempt++;
+            if (attempt < 2 && process.env.NODE_ENV !== 'production') console.warn('[mongo] retrying primary connect...');
+          }
+        }
+        // If still failing, throw last error to trigger fallback logic
+        if (lastErr) throw lastErr;
       } catch (e: unknown) {
         if (fallbackUri && primary !== fallbackUri) {
           const msg = e instanceof Error ? e.message : String(e);
           if (process.env.NODE_ENV !== 'production') console.warn('[mongo] primary connect failed, trying fallback URI:', msg);
           const startFb = Date.now();
-          const c2 = await new MongoClient(fallbackUri, options).connect();
-          if (process.env.NODE_ENV !== 'production') console.log(`[mongo] fallback connected in ${Date.now() - startFb}ms`);
-          return c2;
+          let attemptFb = 0; let lastErrFb: unknown;
+          while (attemptFb < 2) { // retry once on fallback
+            try {
+              const c2 = await new MongoClient(fallbackUri, options).connect();
+              if (process.env.NODE_ENV !== 'production') console.log(`[mongo] fallback connected in ${Date.now() - startFb}ms`);
+              return c2;
+            } catch (err) {
+              lastErrFb = err; attemptFb++;
+              if (attemptFb < 2 && process.env.NODE_ENV !== 'production') console.warn('[mongo] retrying fallback connect...');
+            }
+          }
+          if (lastErrFb) throw lastErrFb;
         }
         throw e;
       }
+      // Should never reach here; type guard
+      throw new Error('Mongo connection failed without throwing cause');
     })();
     globalForMongo._mongoClientPromise = clientPromise;
   }
