@@ -1,6 +1,7 @@
 import { MongoClient, MongoClientOptions, Db } from 'mongodb';
 
 const uri = process.env.MONGODB_URI as string | undefined;
+const fallbackUri = process.env.STANDARD_MONGODB_URI as string | undefined; // optional non-SRV standard URI
 const dbName = process.env.MONGODB_DB; // optional – path in URI usually defines db
 
 interface GlobalMongo {
@@ -18,9 +19,29 @@ const options: MongoClientOptions = {
 };
 
 function initClient() {
-  if (!uri) throw new Error('Missing MONGODB_URI environment variable');
+  if (!uri && !fallbackUri) throw new Error('Missing MONGODB_URI (and no STANDARD_MONGODB_URI)');
   if (!clientPromise) {
-    clientPromise = (globalForMongo._mongoClientPromise ||= new MongoClient(uri, options).connect());
+    clientPromise = (async () => {
+      const start = Date.now();
+      const primary = uri || fallbackUri!;
+      try {
+        if (process.env.NODE_ENV !== 'production') console.log('[mongo] connecting primary URI...');
+        const c = await new MongoClient(primary, options).connect();
+        if (process.env.NODE_ENV !== 'production') console.log(`[mongo] connected in ${Date.now() - start}ms`);
+        return c;
+      } catch (e: unknown) {
+        if (fallbackUri && primary !== fallbackUri) {
+          const msg = e instanceof Error ? e.message : String(e);
+          if (process.env.NODE_ENV !== 'production') console.warn('[mongo] primary connect failed, trying fallback URI:', msg);
+          const startFb = Date.now();
+          const c2 = await new MongoClient(fallbackUri, options).connect();
+          if (process.env.NODE_ENV !== 'production') console.log(`[mongo] fallback connected in ${Date.now() - startFb}ms`);
+          return c2;
+        }
+        throw e;
+      }
+    })();
+    globalForMongo._mongoClientPromise = clientPromise;
   }
   return clientPromise;
 }
