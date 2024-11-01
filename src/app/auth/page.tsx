@@ -20,11 +20,16 @@ export default function AuthPage() {
     e.preventDefault();
     setError(null); setLoading(true);
     const endpoint = mode==='register'? '/api/auth/register':'/api/auth/login';
-    const res = await fetch(endpoint, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ username, password }) });
-    const data = await res.json();
-    setLoading(false);
-    if(!data.ok){ setError(data.error||'Failed'); return; }
-    router.replace(nextPath);
+    try {
+      const res = await fetch(endpoint, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ username, password }) });
+      let data: any = { ok:false, error:'Unexpected response' };
+      try { data = await res.json(); } catch { /* ignore parse error */ }
+      if(!data.ok){ setError(data.error||'Failed'); setLoading(false); return; }
+      router.replace(nextPath);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Network error');
+      setLoading(false);
+    }
   }
 
   return (
