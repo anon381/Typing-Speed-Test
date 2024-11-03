@@ -7,8 +7,9 @@ interface UserDoc { username: string; passwordHash: string; createdAt: Date; }
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    const { username, password } = body;
+  const body = await req.json();
+  if(!body || typeof body !== 'object') return NextResponse.json({ ok:false, error:'Invalid body' }, { status:400 });
+  const { username, password } = body as { username?: unknown; password?: unknown };
     if (typeof username !== 'string' || typeof password !== 'string') {
       return NextResponse.json({ ok: false, error: 'Invalid payload' }, { status: 400 });
     }
