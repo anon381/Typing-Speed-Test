@@ -21,8 +21,10 @@ export async function POST(req: NextRequest) {
     const match = await bcrypt.compare(password, user.passwordHash);
     if (!match) return NextResponse.json({ ok: false, error: 'Invalid credentials' }, { status: 401 });
 
-    const token = jwt.sign({ sub: user.username }, secret, { expiresIn: '2h' });
-    return NextResponse.json({ ok: true, token });
+  const token = jwt.sign({ sub: user.username }, secret, { expiresIn: '2h' });
+  const res = NextResponse.json({ ok: true });
+  res.cookies.set({ name: 'token', value: token, httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production', path: '/', maxAge: 60 * 60 * 2 });
+  return res;
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : 'Unknown error';
     return NextResponse.json({ ok: false, error: message }, { status: 400 });
