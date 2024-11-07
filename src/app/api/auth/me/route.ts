@@ -1,0 +1,24 @@
+import { NextRequest, NextResponse } from 'next/server';
+import jwt from 'jsonwebtoken';
+
+interface JwtPayloadSub { sub?: string }
+
+export async function GET(req: NextRequest) {
+  try {
+    const secret = process.env.AUTH_JWT_SECRET;
+    if (!secret) return NextResponse.json({ ok: false, error: 'Server misconfigured' }, { status: 500 });
+    const token = req.cookies.get('token')?.value;
+    if (!token) return NextResponse.json({ ok: true, user: null });
+    try {
+      const payload = jwt.verify(token, secret) as JwtPayloadSub | string;
+      const username = typeof payload === 'string' ? undefined : payload.sub;
+      if (!username) return NextResponse.json({ ok: true, user: null });
+      return NextResponse.json({ ok: true, user: { username } });
+    } catch {
+      return NextResponse.json({ ok: true, user: null });
+    }
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : 'Unknown error';
+    return NextResponse.json({ ok: false, error: message }, { status: 400 });
+  }
+}
