@@ -30,9 +30,13 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const auth = req.headers.get('authorization');
-    if (!auth?.startsWith('Bearer '))
-      return NextResponse.json({ ok: false, error: 'Missing token' }, { status: 401 });
-    const token = auth.slice(7);
+    let token: string | undefined;
+    if (auth?.startsWith('Bearer ')) {
+      token = auth.slice(7);
+    } else {
+      token = req.cookies.get('token')?.value;
+    }
+    if(!token) return NextResponse.json({ ok:false, error:'Missing token' }, { status:401 });
     const secret = process.env.AUTH_JWT_SECRET;
     if (!secret)
       return NextResponse.json({ ok: false, error: 'Server misconfigured' }, { status: 500 });
