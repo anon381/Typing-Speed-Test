@@ -21,14 +21,13 @@ export default function Home() {
   const [isFinished, setIsFinished] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
 
-  // Auth-state
-  const [authMode, setAuthMode] = useState<'login'|'register'>('register');
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [token, setToken] = useState<string | null>(null);
+  // Auth-state (fetched from cookie session)
+  const [username, setUsername] = useState<string>('');
+  const [tokenPresent, setTokenPresent] = useState(false);
 
   useEffect(() => {
     fetch('/api/scores').then(r => r.json()).then(d => { if (d.ok) setScores(d.scores); });
+    fetch('/api/auth/me').then(r=> r.json()).then(d=> { if(d.ok && d.user){ setUsername(d.user.username); setTokenPresent(true);} });
   }, []);
 
   const totalChars = testText.length;
@@ -66,23 +65,19 @@ export default function Home() {
     inputRef.current?.focus();
   }, []);
 
-  async function authSubmit(e: React.FormEvent){
-    e.preventDefault();
-    setErrorMsg(null);
-    const endpoint = authMode==='register'? '/api/auth/register' : '/api/auth/login';
-    const res = await fetch(endpoint, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ username, password }) });
-    const data = await res.json();
-    if(!data.ok){ setErrorMsg(data.error || 'Auth failed'); return; }
-    if(data.token){ setToken(data.token); setAuthMode('login'); }
+  async function logout(){
+    await fetch('/api/auth/logout', { method:'POST' });
+    setUsername('');
+    setTokenPresent(false);
   }
 
   const submitScore = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isFinished || !token) return;
+  if (!isFinished || !tokenPresent) return;
     setSubmitting(true);
     setErrorMsg(null);
     try {
-      const res = await fetch('/api/scores', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ wpm: Math.round(grossWpm), accuracy: Math.round(accuracy), passageId: passage.id }) });
+  const res = await fetch('/api/scores', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ wpm: Math.round(grossWpm), accuracy: Math.round(accuracy), passageId: passage.id }) });
       const data = await res.json();
       if (data.ok) {
         const refreshed = await fetch('/api/scores').then(r => r.json()); if (refreshed.ok) setScores(refreshed.scores);
@@ -155,7 +150,7 @@ export default function Home() {
             <h2 className="font-semibold text-lg">Submit Score</h2>
             {!finished && <p className="text-xs text-gray-500">Finish or timer end to unlock submission.</p>}
             <form onSubmit={submitScore} className="flex flex-col gap-3">
-              <div className="flex gap-2 items-center text-xs">{token? <span className="text-gray-400">User: {username}</span>: <span className="text-gray-500">Not authenticated</span>}</div>
+              <div className="flex gap-2 items-center text-xs">{tokenPresent? <span className="text-gray-400">User: {username}</span>: <span className="text-gray-500">Not authenticated</span>}</div>
               <div className="flex gap-4 text-sm">
                 <div className="flex-1 p-2 rounded bg-gray-900 border border-gray-700 text-center">
                   <div className="text-xs text-gray-400">WPM</div>
@@ -168,7 +163,7 @@ export default function Home() {
               </div>
               <button
                 type="submit"
-                disabled={!finished || submitting || !token}
+                disabled={!finished || submitting || !tokenPresent}
                 className="px-4 py-2 rounded bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-sm font-medium"
               >{submitting ? 'Submitting…' : 'Save Score'}</button>
             </form>
@@ -189,19 +184,14 @@ export default function Home() {
         <section className="space-y-6 order-first md:order-none">
           <div className="space-y-3">
             <h2 className="font-semibold text-lg">Account</h2>
-            <form onSubmit={authSubmit} className="flex flex-col gap-2">
-              <div className="flex gap-2">
-                <input value={username} onChange={e=> setUsername(e.target.value)} placeholder="Username" className="flex-1 border border-gray-700 bg-gray-950 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" required />
-                <input type="password" value={password} onChange={e=> setPassword(e.target.value)} placeholder="Password" className="flex-1 border border-gray-700 bg-gray-950 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" required />
+            {tokenPresent ? (
+              <div className="text-xs flex items-center gap-2">
+                <span className="text-gray-400">Logged in as {username}</span>
+                <button onClick={logout} className="underline text-red-400">Logout</button>
               </div>
-              <div className="flex gap-2 text-xs items-center">
-                <button type="submit" className="px-3 py-1 rounded bg-blue-600 hover:bg-blue-500 font-medium">{authMode==='register'? 'Register':'Login'}</button>
-                <button type="button" onClick={()=> setAuthMode(m=> m==='register'?'login':'register')} className="text-gray-400 underline">
-                  Switch to {authMode==='register'? 'Login':'Register'}
-                </button>
-                {token && <button type="button" onClick={()=> { setToken(null); }} className="text-red-400 underline ml-auto">Logout</button>}
-              </div>
-            </form>
+            ) : (
+              <div className="text-xs text-gray-500">Session missing. <a href="/auth" className="underline text-blue-400">Login / Register</a></div>
+            )}
           </div>
         </section>
       </main>
