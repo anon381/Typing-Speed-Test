@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { withDb } from '@/lib/mongodb';
 import bcrypt from 'bcryptjs';
-
+// NOTE: In production you might add rate limiting / captcha to this route.
 interface UserDoc { username: string; passwordHash: string; createdAt: Date; }
 
 export async function POST(req: NextRequest) {
