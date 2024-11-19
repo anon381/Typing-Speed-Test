@@ -21,7 +21,7 @@ export default function Home() {
   const [isFinished, setIsFinished] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
 
-  // Auth state
+  // Auth-state
   const [authMode, setAuthMode] = useState<'login'|'register'>('register');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
