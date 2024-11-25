@@ -1,36 +1,62 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Typing Speed Test
+
+This project is a Next.js app scaffolded with TypeScript, Tailwind CSS, ESLint, App Router, and a src directory. It was created using npm.
 
 ## Getting Started
 
-First, run the development server:
+Install dependencies (already done after scaffold, but safe to repeat):
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+```powershell
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Create a `.env.local` file based on `.env.local.example` and set `MONGODB_URI`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Run the development server:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```powershell
+npm run dev
+```
 
-## Learn More
+Open http://localhost:3000 in your browser to see the app.
 
-To learn more about Next.js, take a look at the following resources:
+## MongoDB Integration
+- Connection utility in `src/lib/mongodb.ts`.
+- Scores API route at `src/app/api/scores/route.ts` supports GET (top 20 by WPM) and POST (add score).
+- UI on home page allows submitting and viewing scores.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Environment Variables
+Create `.env.local`:
+```env
+MONGODB_URI=your-full-connection-string
+# MONGODB_DB=typing-speed  # optional override
+```
+These are loaded automatically by Next.js. Never commit your real `.env.local`.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Local Testing Without Atlas
+You can use a local MongoDB instance instead:
+```env
+MONGODB_URI=mongodb://localhost:27017/typing-speed
+```
 
-## Deploy on Vercel
+## Deployment to Vercel
+1. Commit and push changes.
+2. In Vercel dashboard import the GitHub repo.
+3. Add Environment Variable `MONGODB_URI` (and optionally `MONGODB_DB`) in Production (and Preview for branches).
+4. Trigger a deploy; Vercel will build using `npm run build` automatically.
+5. After deploy, test the API endpoint: `https://<your-domain>/api/scores`.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Scripts
+- `npm run dev` – Dev server (Turbopack)
+- `npm run build` – Production build
+- `npm start` – Start production server (used by Vercel)
+- `npm run lint` – ESLint
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Project Structure
+- `src/app` – App Router pages & API routes
+- `src/lib/mongodb.ts` – MongoDB connection helper
+
+## Next Steps
+- Add auth (optional) to prevent spam submissions.
+- Add pagination or date filtering on scores.
+- Add actual typing test logic (timer, accuracy calculation) feeding into the POST.
