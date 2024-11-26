@@ -2,9 +2,13 @@
   - Project type: Next.js app (TypeScript, Tailwind CSS, ESLint, App Router, src directory, npm)
 - [x] Scaffold the Project
   - Next.js app created successfully in current directory.
-- [ ] Customize the Project
-- [ ] Install Required Extensions
-- [ ] Compile the Project
-- [ ] Create and Run Task
+- [x] Customize the Project
+  - Added MongoDB driver, connection helper, scores API route, UI form & list, env example, README updates.
+- [x] Install Required Extensions
+  - No additional extensions required beyond defaults.
+- [x] Compile the Project
+  - Dependencies installed and code updated.
+- [x] Create and Run Task
+  - Using npm scripts directly; no extra VS Code task needed.
 - [ ] Launch the Project
 - [ ] Ensure Documentation is Complete
