@@ -52,9 +52,7 @@ MONGODB_URI=mongodb://localhost:27017/typing-speed
 - `npm start` – Start production server (used by Vercel)
 - `npm run lint` – ESLint
 
-## Project Structure
-- `src/app` – App Router pages & API routes
-- `src/lib/mongodb.ts` – MongoDB connection helper
+
 
 ## Next Steps
 - Add auth (optional) to prevent spam submissions.
