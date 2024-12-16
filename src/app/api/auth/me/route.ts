@@ -7,7 +7,7 @@ export async function GET(req: NextRequest) {
   try {
     const secret = process.env.AUTH_JWT_SECRET;
     if (!secret) return NextResponse.json({ ok: false, error: 'Server misconfigured' }, { status: 500 });
-    const token = req.cookies.get('token')?.value;
+  const token = req.cookies.get('token')?.value;
     if (!token) return NextResponse.json({ ok: true, user: null });
     try {
       const payload = jwt.verify(token, secret) as JwtPayloadSub | string;
