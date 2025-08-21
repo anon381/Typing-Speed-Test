@@ -1,5 +1,5 @@
-<!-- Project README: Typing Speed Test application overview -->
-# Typing Speed Test
+
+ ## Typing Speed Test
 
 This project is a Next.js app scaffolded with TypeScript, Tailwind CSS, ESLint, App Router, and a src directory. It was created using npm.
 
