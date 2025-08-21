@@ -37,8 +37,3 @@ These are loaded automatically by Next.js.
 - `npm run lint` – ESLint
 
 
-
-## Next Steps
-- Add pagination or date filtering on scores.
-- Add richer user profile data.
-- Improve typing test metrics (error streaks, per-character timing).
