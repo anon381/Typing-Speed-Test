@@ -37,3 +37,5 @@ These are loaded automatically by Next.js.
 - `npm run lint` – ESLint
 
 
+
+> ## THANK YOU
