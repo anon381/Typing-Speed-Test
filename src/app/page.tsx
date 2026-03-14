@@ -1,18 +1,21 @@
-// Home: Typing test UI, score submission, scoreboard, and session display.
-'use client';
+"use client";
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { randomPassage } from '@/lib/passages';
+import ThemeToggle from '@/components/ThemeToggle';
+import PassageDisplay from '@/components/PassageDisplay';
+import ResultsModal from '@/components/ResultsModal';
 
 export default function Home() {
   const router = useRouter();
-  const [scores, setScores] = useState<{ name: string; wpm: number; accuracy?: number; passageId?: string }[]>([]);
+  const [scores, setScores] = useState<{ name: string; wpm: number; accuracy?: number; errors?: number; finishSeconds?: number; score?: number; passageId?: string }[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
   // Typing test state
-  const [passage, setPassage] = useState(() => randomPassage());
-  const [mode, setMode] = useState<'full' | 'timed'>('full');
-  const [duration] = useState(60); // seconds for timed mode
+  const [passage, setPassage] = useState(() => randomPassage('t30'));
+  const [mode, setMode] = useState<'full' | 'timed'>('timed');
+  const [duration, setDuration] = useState<number>(30);
   const [now, setNow] = useState(Date.now());
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const testText = passage.text;
@@ -20,184 +23,292 @@ export default function Home() {
   const [startedAt, setStartedAt] = useState<number | null>(null);
   const [endedAt, setEndedAt] = useState<number | null>(null);
   const [isFinished, setIsFinished] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
+  const [inputFocused, setInputFocused] = useState(false);
+  const profileRef = useRef<HTMLDivElement | null>(null);
+  const [profileOpen, setProfileOpen] = useState(false);
 
-  // Auth-state (fetched from cookie session)
+  // Auth-state
   const [username, setUsername] = useState<string>('');
+  const [userEmail, setUserEmail] = useState<string>('');
   const [tokenPresent, setTokenPresent] = useState(false);
 
   useEffect(() => {
     fetch('/api/scores').then(r => r.json()).then(d => { if (d.ok) setScores(d.scores); });
-    fetch('/api/auth/me').then(r=> r.json()).then(d=> { if(d.ok && d.user){ setUsername(d.user.username); setTokenPresent(true);} });
+    fetch('/api/auth/me').then(r => r.json()).then(d => {
+      if (d.ok && d.user) {
+        setUsername(d.user.name || d.user.email || 'User');
+        setUserEmail(d.user.email || '');
+        setTokenPresent(true);
+      }
+    });
   }, []);
 
   const totalChars = testText.length;
   const correctChars = [...userInput].filter((ch, i) => ch === testText[i]).length;
+  const errors = [...userInput].filter((ch, i) => ch !== testText[i]).length;
   const accuracy = userInput.length ? (correctChars / userInput.length) * 100 : 0;
   const elapsedMs = startedAt ? (endedAt ?? now) - startedAt : 0;
   const timeLeft = mode === 'timed' ? Math.max(0, duration - Math.floor(elapsedMs / 1000)) : null;
-  const minutes = elapsedMs / 1000 / 60 || 1 / 60; // avoid div by zero early
-  const grossWpm = (userInput.length / 5) / minutes;
-  const finished = isFinished;
+  const minutes = elapsedMs / 1000 / 60 || 1 / 60;
+  const effectiveWpm = (correctChars / 5) / minutes;
 
   useEffect(() => {
-    if (mode === 'timed' && timeLeft === 0 && !finished && startedAt) {
+    if (mode === 'timed' && timeLeft === 0 && !isFinished && startedAt) {
       setIsFinished(true);
       setEndedAt(Date.now());
     }
-  }, [timeLeft, mode, finished, startedAt]);
+  }, [timeLeft, mode, isFinished, startedAt]);
 
   useEffect(() => { const id = setInterval(() => setNow(Date.now()), 500); return () => clearInterval(id); }, []);
+  useEffect(() => { inputRef.current?.focus(); }, []);
+
+  useEffect(() => { if (isFinished) setModalOpen(true); }, [isFinished]);
+
+  useEffect(() => {
+    if (modalOpen && startedAt && !endedAt) {
+      setEndedAt(Date.now());
+    }
+  }, [modalOpen, startedAt, endedAt]);
+
+  useEffect(() => {
+    const onDocClick = (e: MouseEvent) => {
+      if (!profileRef.current) return;
+      const target = e.target as Node;
+      if (!profileRef.current.contains(target)) setProfileOpen(false);
+    };
+    document.addEventListener('mousedown', onDocClick);
+    return () => document.removeEventListener('mousedown', onDocClick);
+  }, []);
+
+  // keyboard shortcut: press T to focus typing input
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 't' || e.key === 'T') {
+        const active = document.activeElement as HTMLElement | null;
+        if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.isContentEditable)) return;
+        inputRef.current?.focus();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
 
   const handleChange = (v: string) => {
     if (!startedAt) { setStartedAt(Date.now()); setErrorMsg(null); }
-    if (finished) return;
-    if (mode === 'timed') {
-      setUserInput(v);
-    } else if (v.length <= testText.length) {
-      setUserInput(v);
-      if (v.length === testText.length) { setIsFinished(true); setEndedAt(Date.now()); }
-    }
+    if (isFinished) return;
+    // Always clamp input to passage length to avoid advancing past text
+    const clamped = v.slice(0, testText.length);
+    setUserInput(clamped);
+    if (clamped.length === testText.length) { setIsFinished(true); setEndedAt(Date.now()); }
   };
 
   const reset = useCallback((newPassage?: boolean) => {
     setUserInput(''); setStartedAt(null); setEndedAt(null); setIsFinished(false); setErrorMsg(null);
-    if (newPassage) { setPassage(p => randomPassage(p.id)); }
+    if (newPassage) {
+      // choose based on current mode/duration
+      if (mode === 'full') setPassage(randomPassage('full', passage.id));
+      else {
+        const cat = duration === 15 ? 't15' : duration === 30 ? 't30' : duration === 60 ? 't60' : 't120';
+        setPassage(randomPassage(cat, passage.id));
+      }
+    }
     inputRef.current?.focus();
-  }, []);
+  }, [mode, duration, passage.id]);
 
-  async function logout(){
-    try { await fetch('/api/auth/logout', { method:'POST' }); } catch {}
-    setUsername('');
-    setTokenPresent(false);
-    router.replace('/auth?next=/');
+  async function logout() {
+    try { await fetch('/api/auth/logout', { method: 'POST' }); } catch {}
+    setUsername(''); setUserEmail(''); setTokenPresent(false); setProfileOpen(false); router.replace('/auth?next=/');
   }
 
-  const submitScore = async (e: React.FormEvent) => {
-    e.preventDefault();
-  if (!isFinished || !tokenPresent) return;
-    setSubmitting(true);
-    setErrorMsg(null);
+  const saveScore = async () => {
+    if (!isFinished || !tokenPresent) return;
+    setSubmitting(true); setErrorMsg(null);
     try {
-  const res = await fetch('/api/scores', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ wpm: Math.round(grossWpm), accuracy: Math.round(accuracy), passageId: passage.id }) });
+      const finishSeconds = Math.max(1, Math.round(elapsedMs / 1000));
+      const res = await fetch('/api/scores', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          wpm: Math.round(effectiveWpm),
+          accuracy: Math.round(accuracy),
+          errors,
+          finishSeconds,
+          passageId: passage.id,
+        }),
+      });
       const data = await res.json();
       if (data.ok) {
         const refreshed = await fetch('/api/scores').then(r => r.json()); if (refreshed.ok) setScores(refreshed.scores);
-      } else { setErrorMsg(data.error || 'Submit failed'); }
-  } catch (err: unknown) { setErrorMsg(err instanceof Error ? err.message : 'Error'); } finally { setSubmitting(false); }
+      } else {
+        setErrorMsg(data.error || 'Submit failed');
+      }
+    } catch (err: unknown) { setErrorMsg(err instanceof Error ? err.message : 'Error'); } finally { setSubmitting(false); }
   };
 
-  const renderTestText = () => {
-    return (
-      <p className="font-mono text-sm leading-6 select-none">
-        {[...testText].map((ch, i) => {
-          let cls = '';
-          if (i < userInput.length) {
-            cls = userInput[i] === ch ? 'text-green-400' : 'text-red-500';
-          } else if (i === userInput.length && startedAt) {
-            cls = 'underline text-blue-400';
-          } else {
-            cls = 'text-gray-500';
-          }
-          return <span key={i} className={cls}>{ch}</span>;
-        })}
-      </p>
-    );
+  const submitOrRedirect = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!tokenPresent) { router.push('/auth?next=/'); return; }
+    await saveScore();
   };
+  const onSelectDuration = (d: number) => {
+    setDuration(d);
+    setMode('timed');
+    const cat = d === 15 ? 't15' : d === 30 ? 't30' : d === 60 ? 't60' : 't120';
+    setPassage(randomPassage(cat));
+    // clear input
+    setUserInput(''); setStartedAt(null); setEndedAt(null); setIsFinished(false);
+    inputRef.current?.focus();
+  };
+
+  const pctElapsed = mode === 'timed' && startedAt ? Math.min(1, (elapsedMs / 1000) / duration) : 0;
+  const circleDeg = Math.round(pctElapsed * 360);
+  const hue = Math.round(120 - pctElapsed * 120);
+  const timerAnimating = mode === 'timed' && !!startedAt && !isFinished && !modalOpen;
 
   return (
-    <div className="min-h-screen w-full bg-black text-gray-100 font-sans flex flex-col items-center px-4 py-8 gap-10">
-      <header className="w-full max-w-4xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold tracking-tight">Typing Speed Test</h1>
-        <div className="flex flex-wrap gap-4 text-sm items-center">
-          <div><span className="text-gray-400">Mode:</span> {mode === 'timed' ? '60s Timed' : 'Full Passage'}</div>
-          {mode === 'timed' && <div><span className="text-gray-400">Time:</span> {timeLeft}s</div>}
-          <div><span className="text-gray-400">WPM:</span> {Math.round(grossWpm) || 0}</div>
-          <div><span className="text-gray-400">Accuracy:</span> {Math.round(accuracy)}%</div>
-          <div><span className="text-gray-400">Progress:</span> {userInput.length}/{totalChars}</div>
-          {startedAt && !finished && <div className="animate-pulse text-blue-400">LIVE</div>}
-          {finished && <div className="text-emerald-400">DONE</div>}
+    <div className="min-h-screen w-full app-root font-sans flex flex-col items-center px-4 py-8">
+      <header className="w-full flex items-center justify-between px-0">
+        <div className="flex items-center gap-3 pl-3">
+          <Link href="/" className="text-2xl font-bold">Typing Speed Test</Link>
+        </div>
+        <div className="flex items-center gap-3 pr-3">
+          <ThemeToggle />
+          {tokenPresent ? (
+            <div className="profile-wrap" ref={profileRef}>
+              <button className="profile-icon" onClick={() => setProfileOpen(v => !v)} aria-label="Open profile menu" type="button">{(username?.trim()?.[0] || 'U').toUpperCase()}</button>
+              {profileOpen ? (
+                <div className="profile-menu panel panel-border">
+                  <div className="profile-name">{username}</div>
+                  <div className="profile-email">{userEmail}</div>
+                  <button onClick={logout} className="logout-btn">Logout</button>
+                </div>
+              ) : null}
+            </div>
+          ) : (
+            <Link href="/auth" className="nav-auth-btn text-sm">Login / Register</Link>
+          )}
         </div>
       </header>
-      <main className="w-full max-w-4xl grid md:grid-cols-2 gap-10">
-        <section className="space-y-4">
-          <div className="flex flex-wrap gap-3 items-center justify-between">
-            <h2 className="font-semibold text-lg">Test</h2>
-            <div className="flex gap-2 text-xs">
-              <button onClick={() => setMode(m => m === 'full' ? 'timed' : 'full')} className="px-3 py-1 rounded bg-gray-800 border border-gray-600 hover:bg-gray-700">Switch to {mode === 'full' ? 'Timed' : 'Full'}</button>
-              <button onClick={() => reset(true)} className="px-3 py-1 rounded bg-gray-800 border border-gray-600 hover:bg-gray-700">New Passage</button>
+
+      {/* Mode controls above stats */}
+      <div className="w-full max-w-[900px] mx-auto mt-6 flex justify-center">
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          <div className="flex items-center gap-2">
+            <label className="text-sm" style={{ color: 'var(--muted)' }}>Timed</label>
+            <select
+              value={mode==='timed' ? String(duration) : ''}
+              onChange={e => onSelectDuration(Number(e.target.value))}
+              className="px-3 py-1 rounded"
+              style={{ backgroundColor: 'var(--panel)', color: 'var(--text)', border: '1px solid var(--panel-border)' }}
+            >
+              <option value="">—</option>
+              <option value="15">15s</option>
+              <option value="30">30s</option>
+              <option value="60">60s</option>
+              <option value="120">120s</option>
+            </select>
+          </div>
+          <button onClick={() => { setMode('full'); setDuration(0); setPassage(randomPassage('full', passage.id)); }} className={`btn ${mode==='full' ? 'active' : ''}`}>Full Test</button>
+        </div>
+      </div>
+
+      {/* Stats (moved above typing area) */}
+      <div className="w-full max-w-[900px] mx-auto flex justify-center mt-6">
+        <div className="w-full max-w-[700px] flex items-center justify-between gap-4">
+          <div className="flex-1 p-3 panel panel-border text-center rounded">
+            <div className="text-xs text-gray-400">WPM</div>
+            <div className="text-xl font-semibold tabular-nums">{Math.round(effectiveWpm) || 0}</div>
+          </div>
+          <div className="flex-1 p-3 panel panel-border text-center rounded">
+            <div className="text-xs text-gray-400">Accuracy</div>
+            <div className="text-xl font-semibold">{Math.round(accuracy)}%</div>
+          </div>
+          <div className="flex-1 p-3 panel panel-border text-center rounded">
+            <div className="text-xs text-gray-400">Progress</div>
+            <div className="text-xl font-semibold">{userInput.length}/{totalChars}</div>
+          </div>
+          <div className="flex-1 text-center flex flex-col items-center justify-center">
+            <div className="text-xs text-gray-400 mb-2">Time</div>
+            <div className="circular-timer" style={{ background: `conic-gradient(hsl(${hue} 80% 45%) ${circleDeg}deg, rgba(0,0,0,0.08) ${circleDeg}deg)`, animation: timerAnimating ? 'timerPulse 1.4s ease-in-out infinite' : 'none' }}>
+              <div className="inner">{mode === 'full' ? '--' : `${timeLeft ?? duration}s`}</div>
             </div>
           </div>
-          <div className="text-xs text-gray-500">Passage: <span className="text-gray-300 font-mono">{passage.id}</span></div>
-          <div className="rounded-lg border border-gray-700 p-4 bg-gray-900 shadow-inner min-h-[120px]">
-            {renderTestText()}
+        </div>
+      </div>
+
+      {/* Passage + Input (interactive group) */}
+      <div className="w-full flex justify-center mt-4 interactive-area">
+        <div className="merged-card w-full">
+          <div className="passage-area">
+            <button onClick={() => reset(true)} className="new-text-overlay">New Text</button>
+            <PassageDisplay text={testText} userInput={userInput} startedAt={startedAt} inputFocused={inputFocused} />
+             <textarea
+              ref={inputRef}
+              rows={6}
+              // placeholder intentionally removed for small screens to avoid overlap
+              value={userInput}
+              onChange={e => handleChange(e.target.value)}
+              onFocus={() => setInputFocused(true)}
+              onBlur={() => setInputFocused(false)}
+                spellCheck={false}
+                autoCorrect="off"
+                autoCapitalize="off"
+              disabled={isFinished && mode === 'full'}
+              aria-label="Typing input overlay"
+            />
           </div>
-          <textarea
-            ref={inputRef}
-            className="w-full h-40 rounded-md bg-gray-950 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 p-3 font-mono text-sm resize-none tracking-wide"
-            placeholder="Start typing here..."
-            value={userInput}
-            onChange={e => handleChange(e.target.value)}
-            disabled={finished && mode === 'full'}
-          />
-          <div className="flex flex-wrap gap-3">
-            <button onClick={() => reset()} className="px-4 py-2 rounded bg-gray-800 hover:bg-gray-700 border border-gray-600 text-sm">Reset</button>
-            <button onClick={() => reset(true)} className="px-4 py-2 rounded bg-gray-800 hover:bg-gray-700 border border-gray-600 text-sm">Reset & New</button>
-            {finished && <button onClick={() => { reset(); }} className="px-4 py-2 rounded bg-blue-600 hover:bg-blue-500 text-sm font-medium">Retry</button>}
-          </div>
-          {errorMsg && <p className="text-xs text-red-400">{errorMsg}</p>}
-        </section>
-        <section className="space-y-6">
-          <div className="space-y-3">
-            <h2 className="font-semibold text-lg">Submit Score</h2>
-            {!finished && <p className="text-xs text-gray-500">Finish or timer end to unlock submission.</p>}
-            <form onSubmit={submitScore} className="flex flex-col gap-3">
-              <div className="flex gap-2 items-center text-xs">{tokenPresent? <span className="text-gray-400">User: {username}</span>: <span className="text-gray-500">Not authenticated</span>}</div>
-              <div className="flex gap-4 text-sm">
-                <div className="flex-1 p-2 rounded bg-gray-900 border border-gray-700 text-center">
-                  <div className="text-xs text-gray-400">WPM</div>
-                  <div className="text-lg font-semibold">{Math.round(grossWpm) || 0}</div>
-                </div>
-                <div className="flex-1 p-2 rounded bg-gray-900 border border-gray-700 text-center">
-                  <div className="text-xs text-gray-400">Accuracy</div>
-                  <div className="text-lg font-semibold">{Math.round(accuracy)}%</div>
-                </div>
-              </div>
-              <button
-                type="submit"
-                disabled={!finished || submitting || !tokenPresent}
-                className="px-4 py-2 rounded bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-sm font-medium"
-              >{submitting ? 'Submitting…' : 'Save Score'}</button>
-            </form>
-          </div>
-          <div className="space-y-3">
-            <h2 className="font-semibold text-lg">Top Scores</h2>
-            <ul className="space-y-1 text-sm max-h-60 overflow-auto pr-1">
-              {scores.map((s, i) => (
-                <li key={i} className="flex justify-between rounded px-2 py-1 bg-gray-900 border border-gray-800">
-                  <span className="truncate max-w-[45%]" title={s.name}>{s.name}</span>
-                  <span className="tabular-nums">{s.wpm} wpm{s.accuracy ? ` (${s.accuracy}%)` : ''} • {s.passageId || '—'}</span>
-                </li>
-              ))}
-              {!scores.length && <li className="text-gray-500">No scores yet.</li>}
-            </ul>
-          </div>
-        </section>
-        <section className="space-y-6 order-first md:order-none">
-          <div className="space-y-3">
-            <h2 className="font-semibold text-lg">Account</h2>
-            {tokenPresent ? (
-              <div className="text-xs flex items-center gap-2">
-                <span className="text-gray-400">Logged in as {username}</span>
-                <button onClick={logout} className="underline text-red-400">Logout</button>
-              </div>
-            ) : (
-              <div className="text-xs text-gray-500">Session missing. <a href="/auth" className="underline text-blue-400">Login / Register</a></div>
-            )}
-          </div>
-        </section>
-      </main>
-      <footer className="text-xs text-gray-600 pt-4">Built for practice. Passage length: {totalChars} chars.</footer>
+        </div>
+      </div>
+
+      {/* Actions */}
+      <div className="w-full max-w-[900px] mx-auto flex justify-center mt-4">
+        <div className="flex gap-4">
+          <button onClick={() => reset()} className="btn">Reset</button>
+          <button onClick={() => reset(true)} className="btn">Reset & New</button>
+          <button onClick={() => { void submitOrRedirect(); }} disabled={!isFinished || submitting} className="btn" style={{ backgroundColor: 'rgb(16 185 129)', color: 'white' }}>{submitting ? 'Submitting…' : 'Submit Score'}</button>
+        </div>
+      </div>
+      {errorMsg && <p className="mt-2 text-sm" style={{ color: '#ef4444' }}>{errorMsg}</p>}
+
+      {/* Scores / Account */}
+      <div className="w-full max-w-[900px] mx-auto flex flex-col items-center mt-10">
+          <div className="w-full max-w-[600px] text-center">
+          <h3 className="font-semibold text-lg">Top 7 scorers</h3>
+          {scores.length ? (
+            <div className="mt-3 panel panel-border rounded overflow-x-auto">
+              <table className="score-table w-full text-sm">
+                <thead>
+                  <tr>
+                    <th>Rank</th>
+                    <th>WPM</th>
+                    <th>Name</th>
+                    <th>Accuracy</th>
+                    <th>Errors</th>
+                    <th>Finish</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {scores.slice(0, 7).map((s, i) => (
+                    <tr key={i}>
+                      <td>#{i + 1}</td>
+                      <td className="tabular-nums">{s.wpm} wpm</td>
+                      <td>{s.name}</td>
+                      <td>{typeof s.accuracy === 'number' ? `${s.accuracy}%` : '--'}</td>
+                      <td>{typeof s.errors === 'number' ? s.errors : '--'}</td>
+                      <td>{typeof s.finishSeconds === 'number' ? `${s.finishSeconds}s` : '--'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : <div className="mt-3 text-gray-500 text-sm">No scores yet</div>}
+
+        </div>
+      </div>
+
+      <ResultsModal open={modalOpen} onClose={() => setModalOpen(false)} wpm={effectiveWpm} accuracy={accuracy} errors={errors} onSave={submitOrRedirect} />
     </div>
   );
 }

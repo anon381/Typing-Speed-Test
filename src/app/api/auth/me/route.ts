@@ -4,7 +4,7 @@
  * Returns the currently authenticated user based on the 'token' cookie.
  *
  * - Verifies JWT from cookie using server secret.
- * - Fetches user from Prisma if token is valid.
+ * - Fetches user from MongoDB if token is valid.
  * - Returns `{ ok: true, user: userData | null }` or error if misconfigured.
  *
  * Usage:
@@ -13,20 +13,31 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
-import { prisma } from '@/lib/prisma';
+import { getDb } from '@/lib/mongodb';
 
 interface JwtPayloadSub { sub?: string }
 export async function GET(req: NextRequest) {
   try {
+    const db = await getDb();
     const secret = process.env.AUTH_JWT_SECRET;
     if (!secret) return NextResponse.json({ ok: false, error: 'Server misconfigured' }, { status: 500 });
   const token = req.cookies.get('token')?.value;
     if (!token) return NextResponse.json({ ok: true, user: null });
     try {
       const payload = jwt.verify(token, secret) as JwtPayloadSub | string;
-  const username = typeof payload === 'string' ? undefined : payload.sub;
-  if (!username) return NextResponse.json({ ok: true, user: null });
-  const user = await prisma.user.findUnique({ where: { username }, select: { id: true, username: true, createdAt: true } });
+  const email = typeof payload === 'string' ? undefined : payload.sub;
+  if (!email) return NextResponse.json({ ok: true, user: null });
+  const user = await db.collection('users').findOne(
+    { email },
+    {
+      projection: {
+        _id: 0,
+        name: 1,
+        email: 1,
+        createdAt: 1,
+      },
+    }
+  );
   if (!user) return NextResponse.json({ ok: true, user: null });
   return NextResponse.json({ ok: true, user });
     } catch {

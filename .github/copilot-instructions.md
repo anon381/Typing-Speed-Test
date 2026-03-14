@@ -1,10 +1,11 @@
 <!-- Internal maintenance checklist for project evolution -->
+
 - [x] Clarify Project Requirements
   - Project type: Next.js app (TypeScript, Tailwind CSS, ESLint, App Router, src directory, npm)
 - [x] Scaffold the Project
   - Next.js app created successfully in current directory.
 - [x] Customize the Project
-  - Added Prisma + SQLite data layer replacing prior MongoDB approach, scores API route, UI form & list, env example, README updates.
+  - Migrated data layer to MongoDB, updated auth/scores routes, env example, and README.
 - [x] Install Required Extensions
   - No additional extensions required beyond defaults.
 - [x] Compile the Project
