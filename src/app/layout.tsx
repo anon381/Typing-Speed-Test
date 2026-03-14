@@ -38,14 +38,14 @@ const figtree = Figtree({
 });
 
 export const metadata: Metadata = {
-  title: "Speed Test",
-  description: "Typing Speed Test: practice accuracy, improve WPM, and track your performance with timed and full-text modes.",
+  title: "TurboType",
+  description: "Typing practice: improve your WPM, accuracy, and track progress.",
   icons: {
     icon: "/icon.svg",
   },
   openGraph: {
-    title: "Speed Test",
-    description: "Typing Speed Test: practice accuracy, improve WPM, and track your performance with timed and full-text modes.",
+    title: "TurboType",
+    description: "Typing practice: improve your WPM, accuracy, and track progress.",
     type: "website",
   },
 };

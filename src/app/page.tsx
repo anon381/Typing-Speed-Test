@@ -171,7 +171,7 @@ export default function Home() {
     <div className="min-h-screen w-full app-root font-sans flex flex-col items-center px-4 py-8">
       <header className="w-full flex items-center justify-between px-0">
         <div className="flex items-center gap-3 pl-3">
-          <Link href="/" className="text-2xl font-bold">Typing Speed Test</Link>
+          <Link href="/" className="text-2xl font-bold">TurboType</Link>
         </div>
         <div className="flex items-center gap-3 pr-3">
           <ThemeToggle />
@@ -195,20 +195,21 @@ export default function Home() {
       {/* Mode controls above stats */}
       <div className="w-full max-w-[900px] mx-auto mt-6 flex justify-center">
         <div className="flex flex-wrap items-center justify-center gap-3">
-          <div className="flex items-center gap-2">
-            <label className="text-sm" style={{ color: 'var(--muted)' }}>Timed</label>
-            <select
-              value={mode==='timed' ? String(duration) : ''}
-              onChange={e => onSelectDuration(Number(e.target.value))}
-              className="px-3 py-1 rounded"
-              style={{ backgroundColor: 'var(--panel)', color: 'var(--text)', border: '1px solid var(--panel-border)' }}
-            >
-              <option value="">—</option>
-              <option value="15">15s</option>
-              <option value="30">30s</option>
-              <option value="60">60s</option>
-              <option value="120">120s</option>
-            </select>
+          <div className="flex items-center gap-2 timed-picker">
+            <label className="text-sm timed-label">Timed</label>
+            <div className="timed-select-shell">
+              <select
+                value={mode==='timed' ? String(duration) : ''}
+                onChange={e => onSelectDuration(Number(e.target.value))}
+                className="timed-select"
+              >
+                <option value="">—</option>
+                <option value="15">15s</option>
+                <option value="30">30s</option>
+                <option value="60">60s</option>
+                <option value="120">120s</option>
+              </select>
+            </div>
           </div>
           <button onClick={() => { setMode('full'); setDuration(0); setPassage(randomPassage('full', passage.id)); }} className={`btn ${mode==='full' ? 'active' : ''}`}>Full Test</button>
         </div>

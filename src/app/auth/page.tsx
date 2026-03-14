@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import ThemeToggle from '@/components/ThemeToggle';
@@ -10,6 +10,14 @@ type AuthApiResponse = {
 };
 
 export default function AuthPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen" style={{ background: 'var(--bg)' }} />}>
+      <AuthPageContent />
+    </Suspense>
+  );
+}
+
+function AuthPageContent() {
   const router = useRouter();
   const search = useSearchParams();
   const nextPath = search.get('next') || '/';
@@ -77,7 +85,7 @@ export default function AuthPage() {
 
       <div className="relative z-10 mx-auto w-full max-w-md">
         <div className="mb-6 flex items-center justify-between">
-          <Link href="/" className="text-xl font-bold" style={{ color: 'var(--text)' }}>Typing Speed Test</Link>
+          <Link href="/" className="text-xl font-bold" style={{ color: 'var(--text)' }}>TurboType</Link>
           <ThemeToggle />
         </div>
 
