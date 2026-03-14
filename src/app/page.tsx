@@ -268,7 +268,7 @@ export default function Home() {
         <div className="flex gap-4">
           <button onClick={() => reset()} className="btn">Reset</button>
           <button onClick={() => reset(true)} className="btn">Reset & New</button>
-          <button onClick={() => { void submitOrRedirect(); }} disabled={!isFinished || submitting} className="btn" style={{ backgroundColor: 'rgb(16 185 129)', color: 'white' }}>{submitting ? 'Submitting…' : 'Submit Score'}</button>
+          <button onClick={() => { void submitOrRedirect(); }} disabled={!isFinished || submitting} className="btn btn-submit-score">{submitting ? 'Submitting…' : 'Submit Score'}</button>
         </div>
       </div>
       {errorMsg && <p className="mt-2 text-sm" style={{ color: '#ef4444' }}>{errorMsg}</p>}
@@ -278,7 +278,7 @@ export default function Home() {
           <div className="w-full max-w-[600px] text-center">
           <h3 className="font-semibold text-lg">Top 7 scorers</h3>
           {scores.length ? (
-            <div className="mt-3 panel panel-border rounded overflow-x-auto">
+            <div className="mt-3 panel panel-border rounded overflow-x-auto score-shell">
               <table className="score-table w-full text-sm">
                 <thead>
                   <tr>
